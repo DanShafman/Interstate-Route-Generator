@@ -98,7 +98,6 @@ def drawModel():
         t.up()
         # pickle.dump(coordsff, open("final_array.p", "wb"))
 
-
 for i in coordsff:
     print(i, "\n")
 
@@ -130,61 +129,117 @@ def drawComplete():
 # Algorithm functions begin here
 
 def dijkstra(startpos, endpos, coords_passed):
-    print("georgia:", findNeighbors([232.3719738214288, -81.8695352934127], coords_passed))
-    distances = [[0, startpos]]
+    numIts = 0
+    distances = [[0, startpos, []]]
     visited = []
-
-    # print(findDist(startpos, endpos, coords_passed))
     t.color("red")
     t.width(4)
     t.up()
     t.setpos(startpos[0], startpos[1])
     currCounty = startpos
-    prevCounty = []
-    path = []
+    # Sets the current county to the designated start
     while currCounty != endpos:
-        t.down()
-        # candidates = []
+        visited.append(currCounty)
+        # Adds the current county to the visited set
         for i in findNeighbors(currCounty, coords_passed):
+            # Only cycles through unvisited neighbors
+            numIts += 1
             if i not in visited:
                 distToNeighbor = getDistFromList(currCounty, distances) + findDist(currCounty, i, coords_passed)
                 # Distance to neighbor is the dist of the current county + distance to neighbor
-                if getDistFromList(i, distances) != None:
+                if getPathFromList(i, distances) != None:
                     # If the city neighbor county already has a distance asigned to it...
                     neighborCurrentDist = getDistFromList(i, distances)
                     # ...assign the smaller of the two distances
                     if distToNeighbor < neighborCurrentDist:
-                        distances.remove([neighborCurrentDist, i])
-                        distances.append([distToNeighbor, i])
+                        x = getPathFromList(currCounty, distances)
+
+                        distances.remove([neighborCurrentDist, i, getPathFromList(i, distances)])
+                        distances.append([distToNeighbor, i, x])
                 else:
-                    distances.append([distToNeighbor, i])
-                # candidates.append([getDistFromList(i, distances), i])
-        # candidates.sort()
+                    x = getPathFromList(currCounty, distances)
+                    x.append(currCounty)
+                    distances.append([distToNeighbor, i, x])
+
         distances.sort()
-        print(currCounty)
-        visited.append(currCounty)
+
         for i in distances:
+            # Sets the current location to the lowest unvisited distance
             if i[1] not in visited:
                 t.setpos(i[1][0], i[1][1])
-                if i[1] not in findNeighbors(currCounty, coords_passed):
-                    path = []
                 break
-        # try:
-        #     t.setpos(candidates[0][1][0], candidates[0][1][1])
-        # except:
-        #     t.setpos(visited[len(visited) - 2])
-        path.append(currCounty)
         currCounty = list(t.pos())
 
-    print("path:\n")
+    path = getPathFromList(endpos, distances)
+    path.append(endpos)
     for i in path:
-        print(i)
-    print(getDistFromList(endpos, distances))
+        # Draws the path from start to end in red
+        t.setpos(i[0], i[1])
+        t.down()
+    print("numIts:", numIts)
+    print("path:", getPathFromList(endpos, distances))
+    print("distance:", getDistFromList(endpos, distances))
 
 def astar(startpos, endpos, coords_passed):
-    print("WIP")
+    # Nearly identical to dijkstra's, with the exception of the heuristicCostEstimate
+    # variable
+    numIts = 0
+    distances = [[0, startpos, []]]
+    visited = []
+    t.color("red")
+    t.width(4)
+    t.up()
+    t.setpos(startpos[0], startpos[1])
+    currCounty = startpos
+    # Sets the current county to the designated start
+    while currCounty != endpos:
+        visited.append(currCounty)
+        # Adds the current county to the visited set
+        for i in findNeighbors(currCounty, coords_passed):
+            # Only cycles through unvisited neighbors
+            numIts+=1
+            if i not in visited:
+                distToNeighbor = getDistFromList(currCounty, distances) + findDist(currCounty, i, coords_passed)
+                # Distance to neighbor is the dist of the current county + distance to neighbor
+
+                heuristicCostEstimate = getStraightLineDist(i, endpos)
+                # Sets the heuristic cost estimate to the length of the
+                # straight line connecting the neighbor and the final
+                # point
+                if getPathFromList(i, distances) != None:
+                    # If the city neighbor county already has a distance asigned to it...
+                    neighborCurrentDist = getDistFromList(i, distances)
+                    # ...assign the smaller of the two distances
+                    if (distToNeighbor + heuristicCostEstimate) < neighborCurrentDist:
+                        x = getPathFromList(currCounty, distances)
+
+                        distances.remove([neighborCurrentDist, i, getPathFromList(i, distances)])
+                        distances.append([distToNeighbor + heuristicCostEstimate, i, x])
+                else:
+                    x = getPathFromList(currCounty, distances)
+                    x.append(currCounty)
+                    distances.append([distToNeighbor + heuristicCostEstimate, i, x])
+
+        distances.sort()
+
+        for i in distances:
+            # Sets the current location to the lowest unvisited distance
+            if i[1] not in visited:
+                t.setpos(i[1][0], i[1][1])
+                break
+        currCounty = list(t.pos())
+
+    path = getPathFromList(endpos, distances)
+    path.append(endpos)
+    for i in path:
+        # Draws the path from start to end in red
+        t.setpos(i[0], i[1])
+        t.down()
+    print("path:", getPathFromList(endpos, distances))
+    print("distance:", getDistFromList(endpos, distances))
 
 def findNeighbors(city, coords_passed):
+    # Returns the neighbors of the selected county
     neighbors = []
     for i in coords_passed:
         if i[0][1] == city:
@@ -194,6 +249,7 @@ def findNeighbors(city, coords_passed):
     return neighbors
 
 def findDist(city1, city2, coords_passed):
+    # Returns the distance from one county to another adjacent one
     for i in coords_passed:
         # print(city1, i[0][1])
         # p.pprint(coordsff)
@@ -206,6 +262,17 @@ def getDistFromList(city, distList):
         if i[1] == city:
             return i[0]
 
+def getPathFromList(city, distList):
+    for i in distList:
+        if i[1] == city:
+            y = i[2][:]
+            return y
+
+def getStraightLineDist(city1, city2, coords_passed):
+    # Formula for distance between two points
+    xVal = (city1[0] - city2[0]) ** 2
+    yVal = (city1[1] - city2[1]) ** 2
+    return (xVal, yVal) ** 0.5
 
 drawModel()
 drawComplete()
