@@ -104,6 +104,7 @@ for i in coordsff:
 def drawComplete():
     coordsff = pickle.load(open("final_array.p", "rb"))
     p.pprint(coordsff)
+    print(findNeighbors([115.44533077936512, -112.13783629047612], coordsff))
     startq = input("Enter start location: ")
     endq = input("Enter end location: ")
     startpos = ""; endpos = ""
@@ -120,7 +121,7 @@ def drawComplete():
             break
     if alg.upper() == 'D':
         dijkstra(startpos, endpos, coordsff)
-    elif alg == 'A':
+    elif alg.upper() == 'A':
         astar(startpos, endpos, coordsff)
     else:
         print("Enter A or D.")
@@ -147,12 +148,13 @@ def dijkstra(startpos, endpos, coords_passed):
             if i not in visited:
                 distToNeighbor = getDistFromList(currCounty, distances) + findDist(currCounty, i, coords_passed)
                 # Distance to neighbor is the dist of the current county + distance to neighbor
-                if getPathFromList(i, distances) != None:
+                if getDistFromList(i, distances) != None:
                     # If the city neighbor county already has a distance asigned to it...
                     neighborCurrentDist = getDistFromList(i, distances)
                     # ...assign the smaller of the two distances
                     if distToNeighbor < neighborCurrentDist:
                         x = getPathFromList(currCounty, distances)
+                        x.append(currCounty)
 
                         distances.remove([neighborCurrentDist, i, getPathFromList(i, distances)])
                         distances.append([distToNeighbor, i, x])
@@ -202,7 +204,7 @@ def astar(startpos, endpos, coords_passed):
                 distToNeighbor = getDistFromList(currCounty, distances) + findDist(currCounty, i, coords_passed)
                 # Distance to neighbor is the dist of the current county + distance to neighbor
 
-                heuristicCostEstimate = getStraightLineDist(i, endpos)
+                heuristicCostEstimate = (getStraightLineDist(i, endpos, coords_passed) * baseCircum / 3.5) + 1900
                 # Sets the heuristic cost estimate to the length of the
                 # straight line connecting the neighbor and the final
                 # point
@@ -212,6 +214,7 @@ def astar(startpos, endpos, coords_passed):
                     # ...assign the smaller of the two distances
                     if (distToNeighbor + heuristicCostEstimate) < neighborCurrentDist:
                         x = getPathFromList(currCounty, distances)
+                        x.append(currCounty)
 
                         distances.remove([neighborCurrentDist, i, getPathFromList(i, distances)])
                         distances.append([distToNeighbor + heuristicCostEstimate, i, x])
@@ -235,8 +238,9 @@ def astar(startpos, endpos, coords_passed):
         # Draws the path from start to end in red
         t.setpos(i[0], i[1])
         t.down()
+    print("numIts:", numIts)
     print("path:", getPathFromList(endpos, distances))
-    print("distance:", getDistFromList(endpos, distances))
+    # print("distance:", getDistFromList(endpos, distances))
 
 def findNeighbors(city, coords_passed):
     # Returns the neighbors of the selected county
@@ -272,7 +276,7 @@ def getStraightLineDist(city1, city2, coords_passed):
     # Formula for distance between two points
     xVal = (city1[0] - city2[0]) ** 2
     yVal = (city1[1] - city2[1]) ** 2
-    return (xVal, yVal) ** 0.5
+    return (xVal + yVal) ** 0.5
 
 drawModel()
 drawComplete()
